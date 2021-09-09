@@ -177,16 +177,36 @@ class _TripState extends State<Trip> {
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 10),
-            Text(
-              '💰 $_paidBy',
-              style: TextStyle(fontSize: 16),
-            ),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(
+                '💰 $_paidBy',
+                style: TextStyle(fontSize: 16),
+              ),
+              GestureDetector(
+                  onTap: () {
+                    print('Deleting ACtivity');
+                    /*
+                    * TODO: Remove this Activity from database
+                    * */
+                  },
+                  child: Icon(Icons.delete, color: Colors.black54))
+            ])
           ],
         ),
       ),
     );
   }
 
+  /*
+  * TODO: Fetch Trip Activities Data from MongoDB, and fill activties[]
+  *
+  * ActivityData: {
+  *   activity: '',
+  *   costPerHead: '',
+  *   paidBy: ''
+  * }
+  *
+  * */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,6 +270,9 @@ class _TripState extends State<Trip> {
               if (value != null && value.length > 0) {
                 setState(() {
                   activities.add(value);
+                  /*
+                  * TODO: Add this Activity to Activities in MongoDB
+                  * */
                 });
               }
             });

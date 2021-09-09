@@ -123,10 +123,17 @@ class _MyTripsState extends State<MyTrips> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tripData[0],
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-              ),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text(
+                  tripData[0],
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+                GestureDetector(
+                    onTap: () {
+                      print('Deleting Trip');
+                    },
+                    child: Icon(Icons.delete, color: Colors.black54))
+              ]),
               SizedBox(height: 10),
               Text(
                 '${tripData.length - 3} Travellers',
@@ -148,6 +155,18 @@ class _MyTripsState extends State<MyTrips> {
     );
   }
 
+  /*
+  * TODO: Fetch My Trips from MongoDB, and fill trips[]
+  *
+  * TripData: {
+  *   tripName: '',
+  *   from: '',
+  *   to: '',
+  *   travellers: [],
+  *   tripId: null
+  * }
+  *
+  * */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,6 +188,9 @@ class _MyTripsState extends State<MyTrips> {
             if (value != null && value.length > 0) {
               setState(() {
                 trips.add(value);
+                /*
+                * TODO: Add this Trip to My Trips in MongoDB
+                * */
               });
             }
           });

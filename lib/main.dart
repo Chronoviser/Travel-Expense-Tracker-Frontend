@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/my-trips.dart';
 
-
 void main() {
   return runApp(MyApp());
 }
@@ -22,35 +21,35 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  String password;
   final PASS_CODE = "UDAI";
 
-  void checkPassword() {
-    if(password == PASS_CODE) {
-      Navigator.of(context).pushReplacement(PageRouteBuilder(
-          pageBuilder: (context, _, __) =>
-          MyTrips()));
+  void checkPassword(password) {
+    if (password == PASS_CODE) {
+      Navigator.of(context).pushReplacement(
+          PageRouteBuilder(pageBuilder: (context, _, __) => MyTrips()));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Travel Expense Tracker App"),
+      appBar: AppBar(
+        title: Text("Travel Expense Tracker App"),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Card(
+          margin: EdgeInsets.symmetric(horizontal: 60),
+          child: TextField(
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20),
+            decoration: InputDecoration(
+                hintText: "Enter Password Here", border: InputBorder.none),
+            onChanged: checkPassword,
+          ),
         ),
-        body: Container(
-          child: Column(children: [
-            TextField(
-              onChanged: (e) {
-                password = e;
-              },
-            ),
-            RaisedButton(
-              child: Text("Go"),
-              onPressed: checkPassword,
-            )
-          ]),
-        ));
+      ),
+      backgroundColor: Color.fromRGBO(250, 235, 215, 1),
+    );
   }
 }
