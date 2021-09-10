@@ -21,6 +21,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  // ignore: non_constant_identifier_names
   final PASS_CODE = "UDAI";
 
   void checkPassword(password) {
@@ -37,19 +38,25 @@ class _HomeState extends State<Home> {
         title: Text("Travel Expense Tracker App"),
         centerTitle: true,
       ),
-      body: Center(
-        child: Card(
-          margin: EdgeInsets.symmetric(horizontal: 60),
-          child: TextField(
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20),
-            decoration: InputDecoration(
-                hintText: "Enter Password Here", border: InputBorder.none),
-            onChanged: checkPassword,
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+              image: AssetImage("assets/images/background.jpg"), fit: BoxFit.cover),
+        ),
+        child: Center(
+          child: Card(
+            elevation: 2,
+            margin: EdgeInsets.symmetric(horizontal: 60),
+            child: TextField(
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20),
+              decoration: InputDecoration(
+                  hintText: "Enter Password Here", border: InputBorder.none),
+              onChanged: checkPassword,
+            ),
           ),
         ),
       ),
-      backgroundColor: Color.fromRGBO(250, 235, 215, 1),
     );
   }
 }

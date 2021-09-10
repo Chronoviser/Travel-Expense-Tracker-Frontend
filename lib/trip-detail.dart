@@ -1,27 +1,35 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/api-handler/trip-handler.dart';
+import 'package:frontend/models/activity.dart';
+import 'package:frontend/models/trip.dart';
 
-class Trip extends StatefulWidget {
-  final List<String> tripData;
-  final List<String> travellers = [];
+class TripDetail extends StatefulWidget {
+  final Trip tripData;
 
-  Trip({Key key, this.tripData}) : super(key: key) {
-    for (int i = 3; i < tripData.length; i++) {
-      travellers.add(tripData[i]);
-    }
-  }
+  TripDetail({Key key, this.tripData}) : super(key: key);
 
   @override
-  _TripState createState() =>
-      _TripState(tripData[0], tripData[1], tripData[2], travellers);
+  _TripDetailState createState() => _TripDetailState(
+      tripData.id,
+      tripData.tripName,
+      tripData.from,
+      tripData.to,
+      tripData.travellers,
+      tripData.activities);
 }
 
-class _TripState extends State<Trip> {
-  final String tripName;
-  final String from;
-  final String to;
-  final List<String> travellers;
+class _TripDetailState extends State<TripDetail> {
+  TripHandler tripHandler = new TripHandler();
+  Trip currentTrip;
+  bool updatesDone = false;
+  bool allowOperations = false;
+  String tripStatus = "Pending";
 
-  _TripState(this.tripName, this.from, this.to, this.travellers);
+  _TripDetailState(id, tripName, from, to, travellers, activities) {
+    currentTrip =
+        new Trip.withActivity(id, tripName, from, to, travellers, activities);
+  }
 
   Future<List<String>> createActivityDialog(BuildContext context) async {
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -30,7 +38,7 @@ class _TripState extends State<Trip> {
         context: context,
         builder: (context) {
           TextEditingController activityController = TextEditingController();
-          String priceType = "per Head";
+          String priceType = "perHead";
           TextEditingController priceController = TextEditingController();
           String whoPayed;
 
@@ -76,7 +84,7 @@ class _TripState extends State<Trip> {
                                   });
                                 },
                                 items: <String>[
-                                  'per Head',
+                                  'perHead',
                                   'Total'
                                 ].map<DropdownMenuItem<String>>((String value) {
                                   return DropdownMenuItem<String>(
@@ -114,7 +122,7 @@ class _TripState extends State<Trip> {
                               whoPayed = newValue;
                             });
                           },
-                          items: [...travellers, 'dutch']
+                          items: [...currentTrip.travellers, 'dutch']
                               .map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
@@ -146,20 +154,14 @@ class _TripState extends State<Trip> {
         });
   }
 
-  List<List<String>> activities = [];
-
-  Widget ActivityCard({List<String> activityData}) {
-    String _activity = activityData[0];
-    String _priceType = activityData[1];
-    String _costPerHead = activityData[2];
-    String _paidBy = activityData[3];
-
-    if (_priceType == "Total") {
-      _costPerHead =
-          (double.parse(activityData[2]) / (travellers.length)).toString();
-    }
+  // ignore: non_constant_identifier_names
+  Widget ActivityCard({Activity activityData}) {
+    String _activity = activityData.activity;
+    String _costPerHead = activityData.costPerHead;
+    String _paidBy = activityData.payedBy;
 
     return Card(
+      color: Color.fromRGBO(250, 235, 215, 1),
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -182,14 +184,13 @@ class _TripState extends State<Trip> {
                 '💰 $_paidBy',
                 style: TextStyle(fontSize: 16),
               ),
-              GestureDetector(
-                  onTap: () {
-                    print('Deleting ACtivity');
-                    /*
-                    * TODO: Remove this Activity from database
-                    * */
-                  },
-                  child: Icon(Icons.delete, color: Colors.black54))
+              allowOperations
+                  ? GestureDetector(
+                      onTap: () {
+                        deleteActivity(activityData);
+                      },
+                      child: Icon(Icons.delete, color: Colors.black54))
+                  : Container()
             ])
           ],
         ),
@@ -197,86 +198,140 @@ class _TripState extends State<Trip> {
     );
   }
 
-  /*
-  * TODO: Fetch Trip Activities Data from MongoDB, and fill activties[]
-  *
-  * ActivityData: {
-  *   activity: '',
-  *   costPerHead: '',
-  *   paidBy: ''
-  * }
-  *
-  * */
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color.fromRGBO(250, 235, 215, 1),
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(tripName),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Container(
-                color: Colors.black54,
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("From: $from",
-                        style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-                    Text("To: $to",
-                        style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-                    Text('Travellers: $travellers',
-                        style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold))
-                  ],
-                ),
-              ),
-            ),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, updatesDone);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text(currentTrip.tripName),
+          actions: [
             Container(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: activities
-                    .map<Widget>((activityData) =>
-                        ActivityCard(activityData: activityData))
-                    .toList(),
-              ),
-            )
+                padding: EdgeInsets.all(5),
+                alignment: Alignment.center,
+                child: Text(tripStatus, style: TextStyle(color: Colors.green)))
           ],
         ),
+        body: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                child: Container(
+                  color: Colors.black54,
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("From: ${currentTrip.from}",
+                          style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                      SizedBox(height: 10),
+                      Text("To: ${currentTrip.to}",
+                          style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                      SizedBox(height: 10),
+                      Text('Travellers: ${currentTrip.travellers}',
+                          style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold))
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: currentTrip.activities.reversed
+                      .map<Widget>((activityData) =>
+                          ActivityCard(activityData: activityData))
+                      .toList(),
+                ),
+              )
+            ],
+          ),
+        ),
+        floatingActionButton: allowOperations
+            ? FloatingActionButton(
+                child: Icon(Icons.add),
+                onPressed: () {
+                  createActivityDialog(context).then((value) {
+                    if (value != null && value.length > 0) {
+                      Activity activity =
+                          new Activity(value[0], value[2], value[3]);
+                      createActivity(activity);
+                    }
+                  });
+                })
+            : null,
       ),
-      floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.add),
-          onPressed: () {
-            createActivityDialog(context).then((value) {
-              if (value != null && value.length > 0) {
-                setState(() {
-                  activities.add(value);
-                  /*
-                  * TODO: Add this Activity to Activities in MongoDB
-                  * */
-                });
-              }
-            });
-          }),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    updateTripStatus();
+  }
+
+  updateTripStatus() {
+    int a = DateTime.now().difference(DateTime.parse(currentTrip.from)).inDays;
+    int b = DateTime.now().difference(DateTime.parse(currentTrip.to)).inDays;
+    if (a >= 0 && b <= 0) {
+      setState(() {
+        tripStatus = "Day ${a + 1}";
+        allowOperations = true;
+      });
+    } else if (b > 0) {
+      setState(() {
+        tripStatus = "Complete";
+      });
+    }
+  }
+
+  showNetworkError() {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Network Error!')));
+  }
+
+  createActivity(Activity activity) async {
+    currentTrip.activities.add(activity);
+    var response = await tripHandler.updateTrip(currentTrip);
+    if (response)
+      setState(() {
+        updatesDone = true;
+      });
+    else {
+      showNetworkError();
+      currentTrip.activities.removeLast();
+    }
+  }
+
+  deleteActivity(Activity activity) async {
+    int index = currentTrip.activities.indexOf(activity);
+    currentTrip.activities.removeAt(index);
+    var response = await tripHandler.updateTrip(currentTrip);
+    if (response)
+      setState(() {
+        updatesDone = true;
+      });
+    else {
+      showNetworkError();
+      currentTrip.activities.insert(index, activity);
+    }
   }
 }
